@@ -1,0 +1,39 @@
+{
+  "name": "elastic-search-performance-benchmark",
+  "version": "1.0.0",
+  "description": "Performance testing suite for Elasticsearch full-text and fuzzy search",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test:basic": "ts-node src/test/basic-test.ts",
+    "test:benchmark": "ts-node src/test/simple-benchmark.ts",
+    "benchmark": "npm run build && node dist/benchmark.js",
+    "clean": "rm -rf dist && rm -rf data"
+  },
+  "keywords": [
+    "elasticsearch",
+    "benchmark",
+    "performance",
+    "search",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@elastic/elasticsearch": "^9.0.2",
+    "@faker-js/faker": "^9.8.0",
+    "chart.js": "^4.4.9",
+    "chartjs-node-canvas": "^5.0.0",
+    "fs-extra": "^11.3.0",
+    "yarg": "^1.0.8"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.15.21",
+    "@types/yargs": "^17.0.33",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
