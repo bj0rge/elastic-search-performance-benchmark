@@ -1,17 +1,24 @@
 import { Client } from "@elastic/elasticsearch";
 import { Product } from "../../types";
 
-export interface BulkOperationResult {
+export interface BulkIndexResult {
   took: number;
   errors: boolean;
   items: any[];
 }
 
+export type BulkUpdateResult = {
+  took: number;
+  errors: boolean;
+  updated: number;
+  failed: number;
+};
+
 export const bulkIndex = async (
   client: Client,
   indexName: string,
   products: Product[]
-): Promise<BulkOperationResult> => {
+): Promise<BulkIndexResult> => {
   const startTime = Date.now();
 
   try {
@@ -22,7 +29,7 @@ export const bulkIndex = async (
 
     const response = await client.bulk({ body });
 
-    const result: BulkOperationResult = {
+    const result: BulkIndexResult = {
       took: Date.now() - startTime,
       errors: response.errors,
       items: response.items,
@@ -36,6 +43,51 @@ export const bulkIndex = async (
     return result;
   } catch (error) {
     console.error("Bulk indexing failed:", error);
+    throw error;
+  }
+};
+
+export const bulkUpdateDocuments = async (
+  client: Client,
+  indexName: string,
+  updates: Array<{ id: string; updates: Partial<Product> }>
+): Promise<BulkUpdateResult> => {
+  const startTime = Date.now();
+
+  try {
+    const body = updates.flatMap((update) => [
+      { update: { _index: indexName, _id: update.id } },
+      { doc: update.updates },
+    ]);
+
+    const response = await client.bulk({
+      body,
+      refresh: false, // Refresh will be manually controlled after the update
+    });
+
+    const updated = response.items.filter(
+      (item) =>
+        item.update?.result === "updated" || item.update?.result === "noop"
+    ).length;
+
+    const failed = response.items.filter((item) => item.update?.error).length;
+
+    const result: BulkUpdateResult = {
+      took: Date.now() - startTime,
+      errors: response.errors,
+      updated,
+      failed,
+    };
+
+    if (result.errors) {
+      console.warn(
+        `Bulk update had ${failed} errors out of ${updates.length} updates`
+      );
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Bulk update failed:", error);
     throw error;
   }
 };
