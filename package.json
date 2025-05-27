@@ -9,6 +9,7 @@
     "dev": "ts-node src/index.ts",
     "test:basic": "ts-node src/test/basic-test.ts",
     "test:benchmark": "ts-node src/test/simple-benchmark.ts",
+    "test:persistence": "ts-node src/test/test-persistence.ts",
     "benchmark": "npm run build && node dist/benchmark.js",
     "clean": "rm -rf dist && rm -rf data"
   },

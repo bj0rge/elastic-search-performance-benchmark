@@ -1,6 +1,2 @@
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: Date;
-}
+export * from "./benchmark";
+export * from "./product";
