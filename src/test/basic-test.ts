@@ -5,8 +5,8 @@ import {
 } from "../generator/product-generator";
 import { createStandardIndexConfig } from "../config/index-configs";
 import { Client } from "@elastic/elasticsearch";
-import * as path from "path";
 import { Product } from "../types";
+import { DEFAULT_CORPUS_PATH } from "../utils";
 
 const INDEX_NAME = "test-products";
 const PRODUCTS_TO_GENERATE = 10;
@@ -160,9 +160,7 @@ const basicTest = async () => {
   console.log("Starting basic Elasticsearch test...");
 
   const client = elasticSdk.createElasticsearchClient();
-  const dataGenerator = createDataGenerator(
-    path.join(__dirname, "../../data/corpus/lines.txt")
-  );
+  const dataGenerator = createDataGenerator(DEFAULT_CORPUS_PATH);
 
   try {
     console.log("Checking Elasticsearch health...");

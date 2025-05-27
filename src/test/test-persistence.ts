@@ -30,6 +30,7 @@ const testPersistence = async () => {
           fuzziness: "AUTO",
         },
       },
+      verbose: true,
     },
     indexingData: {
       totalDocuments: 10,
