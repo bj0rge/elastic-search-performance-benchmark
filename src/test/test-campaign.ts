@@ -14,6 +14,7 @@ const createTestCampaignConfig = (): CampaignConfig => {
     batches: 10,
     docsPerBatch: 100,
     descLength: 1,
+    chartName: "Test Campaign - Batch Size Scaling",
     verbose: true,
   });
 

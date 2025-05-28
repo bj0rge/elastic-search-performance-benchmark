@@ -9,6 +9,11 @@ export const logCampaignResult = (
 
   logger.log("\n📊 Campaign Results:");
   logger.log(`✅ Campaign ID: ${result.campaignId}`);
+
+  if (result.configurations.length > 0 && result.configurations[0].chartName) {
+    logger.log(`📈 Chart Name: "${result.configurations[0].chartName}"`);
+  }
+
   logger.log(`✅ Total runs: ${result.totalRuns}`);
   logger.log(`✅ Completed: ${result.completedRuns}`);
   logger.log(`✅ Failed: ${result.failedRuns}`);
@@ -22,7 +27,7 @@ export const logCampaignResult = (
       logger.log(
         `Config ${index + 1}: ${config.documentsPerBatch} docs/batch (${
           config.indexName
-        })`
+        }) - Chart: "${config.chartName || "N/A"}"`
       );
     });
   }

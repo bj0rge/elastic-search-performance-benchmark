@@ -2,6 +2,7 @@ import { runCampaign } from "../campaign";
 import {
   createBaseConfig,
   createCampaignConfig,
+  generateChartName,
 } from "../campaign/config-factory";
 import { createBenchmarkRunner, type VariableType } from "../campaign";
 import { logCampaignResult } from "../utils";
@@ -17,6 +18,7 @@ type CLIArgs = {
   batches?: number;
   docsPerBatch?: number;
   descLength?: number;
+  chartName?: string;
   verbose?: boolean;
   help?: boolean;
 };
@@ -66,6 +68,10 @@ const parseArgs = (): CLIArgs => {
         parsed.descLength = parseInt(value);
         i++;
         break;
+      case "--chart-name":
+        parsed.chartName = value;
+        i++;
+        break;
       case "--verbose":
         parsed.verbose = true;
         break;
@@ -97,21 +103,24 @@ Optional Configuration:
   --batches <number>      Base number of batches [default: 10]
   --docs-per-batch <num>  Base documents per batch [default: 100]
   --desc-length <number>  Base description length [default: 1]
+  --chart-name <name>     Custom chart name for grouping results [default: auto-generated]
   --verbose               Enable verbose logging [default: false]
   --help, -h              Show this help message
 
-Examples:
-  # Vary documents per batch from 100 to 1000, increment by 300, repeat 3 times
-  npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --increment 300 --repetitions 3
+Chart Name Examples:
+  - "Batch Count Scaling" (auto-generated for numberOfBatches)
+  - "Index Type Comparison" (auto-generated for indexType)
+  - "My Custom Performance Test" (custom name)
 
-  # Vary description length from 1 to 10, increment by 2, repeat 2 times
+Examples:
+  # Vary documents per batch with custom chart name
+  npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --increment 300 --repetitions 3 --chart-name "Custom Batch Size Test"
+
+  # Vary description length with auto-generated chart name
   npm run campaign:cli -- --variable descriptionLength --min 1 --max 10 --increment 2 --repetitions 2
 
-  # Vary number of batches from 5 to 50, increment by 15, with custom base config
-  npm run campaign:cli -- --variable numberOfBatches --min 5 --max 50 --increment 15 --repetitions 1 --docs-per-batch 500 --desc-length 3
-
-  # Test different index types (special case - min/max/increment ignored)
-  npm run campaign:cli -- --variable indexType --min 0 --max 0 --increment 0 --repetitions 2 --batches 20 --docs-per-batch 300
+  # Test different index types with custom chart name
+  npm run campaign:cli -- --variable indexType --min 0 --max 0 --increment 0 --repetitions 2 --chart-name "Production Index Analysis"
 `);
 };
 
@@ -171,12 +180,15 @@ const runCLI = async () => {
   console.log("🎯 Starting Campaign from CLI...\n");
 
   try {
+    const finalChartName = args.chartName || generateChartName(args.variable);
+
     const baseConfig = createBaseConfig({
       indexName: `cli-campaign-${args.variable}`,
       indexType: args.indexType,
       batches: args.batches,
       docsPerBatch: args.docsPerBatch,
       descLength: args.descLength,
+      chartName: finalChartName,
       verbose: args.verbose,
     });
 
@@ -194,6 +206,7 @@ const runCLI = async () => {
 
     console.log("📋 Campaign Configuration:");
     console.log(`\t- Variable: ${args.variable}`);
+    console.log(`\t- Chart Name: "${finalChartName}"`);
     if (args.variable !== "indexType") {
       console.log(
         `\t- Range: ${args.min} to ${args.max} (increment: ${args.increment})`
@@ -224,6 +237,7 @@ const runCLI = async () => {
     console.log(
       `📁 Results saved to ${result.results.length} files in data/results/`
     );
+    console.log(`📊 Chart Name: "${finalChartName}"`);
   } catch (error) {
     console.error("❌ CLI Campaign failed:", error);
     process.exit(1);

@@ -4,6 +4,7 @@ export type BenchmarkConfig = {
   // Index configuration
   indexName: string;
   indexType: IndexType;
+  chartName?: string;
 
   // Logging
   verbose: boolean;

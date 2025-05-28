@@ -8,10 +8,12 @@ export const createBaseConfig = (options: {
   docsPerBatch?: number;
   descLength?: number;
   verbose?: boolean;
+  chartName?: string;
 }): BenchmarkConfig => {
   return {
     indexName: options.indexName,
     indexType: options.indexType || "standard",
+    chartName: options.chartName,
     numberOfBatches: options.batches || 10,
     documentsPerBatch: options.docsPerBatch || 100,
     descriptionLength: options.descLength || 1,
@@ -40,6 +42,20 @@ export const createBaseConfig = (options: {
   };
 };
 
+export const generateChartName = (variable: VariableType): string => {
+  const chartNames: Record<VariableType, string> = {
+    numberOfBatches: "Batch Count Scaling",
+    documentsPerBatch: "Batch Size Scaling",
+    descriptionLength: "Content Length Scaling",
+    indexType: "Index Type Comparison",
+    numberOfUpdateBatches: "Update Batch Scaling",
+    documentsPerUpdateBatch: "Update Batch Size Impact",
+    fuzziness: "Fuzziness Optimization",
+  };
+
+  return chartNames[variable];
+};
+
 export const createCampaignConfig = (
   baseConfig: BenchmarkConfig,
   variable: VariableType,
@@ -49,6 +65,10 @@ export const createCampaignConfig = (
   repetitions: number,
   values?: string[]
 ): CampaignConfig => {
+  if (!baseConfig.chartName) {
+    baseConfig.chartName = generateChartName(variable);
+  }
+
   return {
     baseConfig,
     variations: {

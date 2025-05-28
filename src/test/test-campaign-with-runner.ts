@@ -13,6 +13,7 @@ const createTestCampaignConfig = (): CampaignConfig => {
     batches: 10,
     docsPerBatch: 100,
     descLength: 1,
+    chartName: "Integration Test - Batch Size Scaling",
     verbose: true,
   });
 
@@ -64,6 +65,7 @@ const testIndexTypeCampaign = async () => {
       batches: 5,
       docsPerBatch: 100,
       descLength: 1,
+      chartName: "Integration Test - Index Type Comparison",
       verbose: true,
     });
 
