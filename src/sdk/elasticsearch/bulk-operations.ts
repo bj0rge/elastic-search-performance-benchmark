@@ -1,5 +1,6 @@
 import { Client } from "@elastic/elasticsearch";
 import { Product } from "../../types";
+import { sanitizeIndexName } from "./utils";
 
 export interface BulkIndexResult {
   took: number;
@@ -19,11 +20,12 @@ export const bulkIndex = async (
   indexName: string,
   products: Product[]
 ): Promise<BulkIndexResult> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   const startTime = Date.now();
 
   try {
     const body = products.flatMap((product) => [
-      { index: { _index: indexName, _id: product.id } },
+      { index: { _index: sanitizedIndexName, _id: product.id } },
       product,
     ]);
 
@@ -52,11 +54,12 @@ export const bulkUpdateDocuments = async (
   indexName: string,
   updates: Array<{ id: string; updates: Partial<Product> }>
 ): Promise<BulkUpdateResult> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   const startTime = Date.now();
 
   try {
     const body = updates.flatMap((update) => [
-      { update: { _index: indexName, _id: update.id } },
+      { update: { _index: sanitizedIndexName, _id: update.id } },
       { doc: update.updates },
     ]);
 
@@ -96,11 +99,15 @@ export const countDocuments = async (
   client: Client,
   indexName: string
 ): Promise<number> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   try {
-    const response = await client.count({ index: indexName });
+    const response = await client.count({ index: sanitizedIndexName });
     return response.count;
   } catch (error) {
-    console.error(`Failed to count documents in index ${indexName}:`, error);
+    console.error(
+      `Failed to count documents in index ${sanitizedIndexName}:`,
+      error
+    );
     throw error;
   }
 };

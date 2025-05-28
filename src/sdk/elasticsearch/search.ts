@@ -1,5 +1,6 @@
 import { Client } from "@elastic/elasticsearch";
 import { Product } from "../../types";
+import { sanitizeIndexName } from "./utils";
 
 type Hit<T> = {
   _index: string;
@@ -32,9 +33,10 @@ export const search = async (
     sort?: any[];
   } = {}
 ): Promise<SearchResult<Product>> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   try {
     const response = await client.search({
-      index: indexName,
+      index: sanitizedIndexName,
       query,
       size: options.size || 10,
       from: options.from || 0,
@@ -67,6 +69,7 @@ export const fuzzySearch = async (
   fuzziness: string | number = "AUTO",
   options: { size?: number; from?: number } = {}
 ): Promise<SearchResult<Product>> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   const query = {
     fuzzy: {
       [field]: {
@@ -76,7 +79,7 @@ export const fuzzySearch = async (
     },
   };
 
-  return search(client, indexName, query, options);
+  return search(client, sanitizedIndexName, query, options);
 };
 
 export const fullTextSearch = async (
@@ -86,6 +89,7 @@ export const fullTextSearch = async (
   term: string,
   options: { size?: number; from?: number; operator?: "and" | "or" } = {}
 ): Promise<SearchResult<Product>> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   const query = {
     multi_match: {
       query: term,
@@ -94,5 +98,5 @@ export const fullTextSearch = async (
     },
   };
 
-  return search(client, indexName, query, options);
+  return search(client, sanitizedIndexName, query, options);
 };

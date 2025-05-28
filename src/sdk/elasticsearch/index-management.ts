@@ -1,4 +1,5 @@
 import { Client } from "@elastic/elasticsearch";
+import { sanitizeIndexName } from "./utils";
 
 export type ElasticIndexSettings = {
   number_of_shards: number;
@@ -31,23 +32,24 @@ export const createIndex = async (
   client: Client,
   config: ElasticIndexConfig
 ): Promise<void> => {
+  const sanitizedIndexName = sanitizeIndexName(config.name);
   try {
-    const exists = await indexExists(client, config.name);
+    const exists = await indexExists(client, sanitizedIndexName);
 
     if (exists) {
-      console.log(`Index ${config.name} already exists`);
+      console.log(`Index ${sanitizedIndexName} already exists`);
       return;
     }
 
     await client.indices.create({
-      index: config.name,
+      index: sanitizedIndexName,
       settings: config.settings,
       mappings: config.mappings,
     });
 
-    console.log(`Index ${config.name} created successfully`);
+    console.log(`Index ${sanitizedIndexName} created successfully`);
   } catch (error) {
-    console.error(`Failed to create index ${config.name}:`, error);
+    console.error(`Failed to create index ${sanitizedIndexName}:`, error);
     throw error;
   }
 };
@@ -56,18 +58,19 @@ export const deleteIndex = async (
   client: Client,
   indexName: string
 ): Promise<void> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   try {
-    const exists = await indexExists(client, indexName);
+    const exists = await indexExists(client, sanitizedIndexName);
 
     if (!exists) {
-      console.log(`Index ${indexName} does not exist`);
+      console.log(`Index ${sanitizedIndexName} does not exist`);
       return;
     }
 
-    await client.indices.delete({ index: indexName });
-    console.log(`Index ${indexName} deleted successfully`);
+    await client.indices.delete({ index: sanitizedIndexName });
+    console.log(`Index ${sanitizedIndexName} deleted successfully`);
   } catch (error) {
-    console.error(`Failed to delete index ${indexName}:`, error);
+    console.error(`Failed to delete index ${sanitizedIndexName}:`, error);
     throw error;
   }
 };
@@ -76,10 +79,11 @@ export const refreshIndex = async (
   client: Client,
   indexName: string
 ): Promise<void> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   try {
-    await client.indices.refresh({ index: indexName });
+    await client.indices.refresh({ index: sanitizedIndexName });
   } catch (error) {
-    console.error(`Failed to refresh index ${indexName}:`, error);
+    console.error(`Failed to refresh index ${sanitizedIndexName}:`, error);
     throw error;
   }
 };
@@ -88,11 +92,15 @@ export const getIndexStats = async (
   client: Client,
   indexName: string
 ): Promise<any> => {
+  const sanitizedIndexName = sanitizeIndexName(indexName);
   try {
-    const response = await client.indices.stats({ index: indexName });
+    const response = await client.indices.stats({ index: sanitizedIndexName });
     return response;
   } catch (error) {
-    console.error(`Failed to get stats for index ${indexName}:`, error);
+    console.error(
+      `Failed to get stats for index ${sanitizedIndexName}:`,
+      error
+    );
     throw error;
   }
 };
