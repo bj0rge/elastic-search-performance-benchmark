@@ -11,7 +11,9 @@
     "test:benchmark": "ts-node src/test/test-benchmark-runner.ts",
     "test:persistence": "ts-node src/test/test-persistence.ts",
     "test:campaign": "ts-node src/test/test-campaign.ts",
+    "test:chart-generation": "ts-node src/test/test-chart-generation.ts",
     "campaign:cli": "ts-node src/cli/campaign-cli.ts",
+    "chart:generate": "ts-node src/cli/chart-cli.ts",
     "benchmark": "npm run build && node dist/benchmark.js",
     "clean": "rm -rf dist && rm -rf data/results/*"
   },
