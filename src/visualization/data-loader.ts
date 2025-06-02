@@ -1,59 +1,60 @@
 // written with the help of AI
-import fs from "fs-extra";
-import path from "path";
-import { BenchmarkResult } from "../types";
+import { StreamProcessor } from "./stream-processor";
 import { RESULTS_DIR } from "../persistence/persistence";
 import { ChartData } from "./chart-generator";
 
-export const loadAllBenchmarkResults = async (): Promise<BenchmarkResult[]> => {
-  const files = await fs.readdir(RESULTS_DIR);
-  const jsonFiles = files.filter(
-    (file) => file.endsWith(".json") && file.startsWith("benchmark_")
-  );
-
-  const results: BenchmarkResult[] = [];
-
-  for (const file of jsonFiles) {
-    try {
-      const filePath = path.join(RESULTS_DIR, file);
-      const data = await fs.readJson(filePath);
-      results.push(data);
-    } catch (error) {
-      console.warn(`Failed to load ${file}:`, error);
-    }
-  }
-
-  return results;
-};
-
-export const groupResultsByChartName = (
-  results: BenchmarkResult[]
-): Map<string, BenchmarkResult[]> => {
-  const groups = new Map<string, BenchmarkResult[]>();
-
-  for (const result of results) {
-    const chartName = result.config.chartName || "Unnamed Chart";
-
-    if (!groups.has(chartName)) {
-      groups.set(chartName, []);
-    }
-
-    groups.get(chartName)!.push(result);
-  }
-
-  return groups;
-};
-
 export const loadChartData = async (): Promise<ChartData[]> => {
-  const allResults = await loadAllBenchmarkResults();
-  const groupedResults = groupResultsByChartName(allResults);
+  const processor = new StreamProcessor({
+    maxParallel: 6,
+    enableCache: true,
+    verbose: true,
+  });
+
+  const aggregations = await processor.processAllResults(RESULTS_DIR);
 
   const chartDataArray: ChartData[] = [];
 
-  for (const [chartName, results] of groupedResults) {
+  for (const [chartName, aggregation] of aggregations) {
+    const dataPoints = Array.from(aggregation.dataPoints.values()).map(
+      (dp) => ({
+        variable: dp.variable,
+        stats: {
+          indexing: StreamProcessor.calculateStats(dp.indexingTimeMs),
+          search: StreamProcessor.calculateStats(dp.searchTimeMs),
+          update: StreamProcessor.calculateStats(dp.updateTimeMs),
+          total: StreamProcessor.calculateStats(dp.totalDurationMs),
+        },
+      })
+    );
+
+    // Ajouter les données brutes pour les nuages de points
+    const rawDataPoints = Array.from(aggregation.dataPoints.values()).map(
+      (dp) => ({
+        variable: dp.variable,
+        rawValues: {
+          indexing: dp.indexingTimeMs,
+          search: dp.searchTimeMs,
+          update: dp.updateTimeMs,
+          total: dp.totalDurationMs,
+        },
+      })
+    );
+
+    console.log(`📊 Loaded chart: "${chartName}"`);
+    console.log(`   Variable: ${aggregation.variable}`);
+    console.log(`   Data points: ${dataPoints.length}`);
+    console.log(`   Sample data point:`, dataPoints[0]?.variable);
+    console.log(`   Sample stats:`, {
+      indexing: dataPoints[0]?.stats.indexing.mean,
+      search: dataPoints[0]?.stats.search.mean,
+      update: dataPoints[0]?.stats.update.mean,
+    });
+
     chartDataArray.push({
       chartName,
-      results,
+      variable: aggregation.variable,
+      dataPoints,
+      rawDataPoints,
     });
   }
 
@@ -61,31 +62,72 @@ export const loadChartData = async (): Promise<ChartData[]> => {
 };
 
 export const getAvailableChartNames = async (): Promise<string[]> => {
-  const allResults = await loadAllBenchmarkResults();
-  const chartNames = new Set<string>();
-
-  for (const result of allResults) {
-    const chartName = result.config.chartName || "Unnamed Chart";
-    chartNames.add(chartName);
-  }
-
-  return Array.from(chartNames).sort();
+  const processor = new StreamProcessor({ verbose: false });
+  const aggregations = await processor.processAllResults(RESULTS_DIR);
+  return Array.from(aggregations.keys()).sort();
 };
 
 export const loadChartDataByName = async (
   chartName: string
 ): Promise<ChartData | null> => {
-  const allResults = await loadAllBenchmarkResults();
-  const matchingResults = allResults.filter(
-    (result) => (result.config.chartName || "Unnamed Chart") === chartName
+  const processor = new StreamProcessor({ verbose: false });
+  const aggregations = await processor.processAllResults(RESULTS_DIR);
+
+  const aggregation = aggregations.get(chartName);
+  if (!aggregation) {
+    console.warn(`❌ No aggregation found for chart: "${chartName}"`);
+    console.log(
+      `Available charts: ${Array.from(aggregations.keys()).join(", ")}`
+    );
+    return null;
+  }
+
+  const dataPoints = Array.from(aggregation.dataPoints.values()).map((dp) => ({
+    variable: dp.variable,
+    stats: {
+      indexing: StreamProcessor.calculateStats(dp.indexingTimeMs),
+      search: StreamProcessor.calculateStats(dp.searchTimeMs),
+      update: StreamProcessor.calculateStats(dp.updateTimeMs),
+      total: StreamProcessor.calculateStats(dp.totalDurationMs),
+    },
+  }));
+
+  const rawDataPoints = Array.from(aggregation.dataPoints.values()).map(
+    (dp) => ({
+      variable: dp.variable,
+      rawValues: {
+        indexing: dp.indexingTimeMs,
+        search: dp.searchTimeMs,
+        update: dp.updateTimeMs,
+        total: dp.totalDurationMs,
+      },
+    })
   );
 
-  if (matchingResults.length === 0) {
-    return null;
+  console.log(`📊 Loaded specific chart: "${chartName}"`);
+  console.log(`   Variable: ${aggregation.variable}`);
+  console.log(`   Data points: ${dataPoints.length}`);
+
+  // Debug pour identifier le problème
+  if (dataPoints.length === 0) {
+    console.error(`❌ No data points found for "${chartName}"`);
+    console.log(`Aggregation structure:`, Object.keys(aggregation));
+    console.log(`DataPoints map size:`, aggregation.dataPoints.size);
+  } else {
+    console.log(
+      `   Variables: [${dataPoints.map((dp) => dp.variable).join(", ")}]`
+    );
+    console.log(`   Sample raw data sizes:`, {
+      indexing: rawDataPoints[0]?.rawValues.indexing.length,
+      search: rawDataPoints[0]?.rawValues.search.length,
+      update: rawDataPoints[0]?.rawValues.update.length,
+    });
   }
 
   return {
     chartName,
-    results: matchingResults,
+    variable: aggregation.variable,
+    dataPoints,
+    rawDataPoints,
   };
 };
