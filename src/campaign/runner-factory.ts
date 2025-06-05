@@ -41,7 +41,7 @@ export const createMockRunner = (): BenchmarkRunner => {
     console.log(`\t- Batches: ${config.numberOfBatches}`);
     console.log(`\t- Docs per batch: ${config.documentsPerBatch}`);
     console.log(
-      `\t- Description length (in words): ${config.descriptionWordLength}`
+      `\t- Description length (in words): ${config.productStructure}`
     );
 
     await new Promise((resolve) => setTimeout(resolve, 100));

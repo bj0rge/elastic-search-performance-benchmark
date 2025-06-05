@@ -206,6 +206,8 @@ const getConfigValue = (config: any, variable: string): any => {
       return config.updateConfig?.documentsPerUpdateBatch;
     case "fuzziness":
       return config.searchQueries?.fuzzySearch?.fuzziness;
+    case "additionalFields":
+      return config.productStructure.length - 1;
     default:
       return "unknown";
   }

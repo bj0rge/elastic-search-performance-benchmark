@@ -147,7 +147,15 @@ export class StreamProcessor {
     } else if (indexName.includes("-descriptionWordLength-")) {
       // Pattern: cli-campaign-descriptionWordLength-10
       variable = "descriptionWordLength";
-      value = config.descriptionWordLength;
+      if (config.productStructure) {
+        const totalWords = config.productStructure.reduce(
+          (sum, field) => sum + field.wordCount,
+          0
+        );
+        value = totalWords;
+      } else {
+        value = (config as any).descriptionWordLength || 0;
+      }
     } else if (indexName.includes("-numberOfUpdateBatches-")) {
       variable = "numberOfUpdateBatches";
       value = config.updateConfig.numberOfUpdateBatches;

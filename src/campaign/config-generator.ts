@@ -1,5 +1,10 @@
 import type { BenchmarkConfig, IndexType } from "../types";
 import type { VariationParams, VariableType } from "./types";
+import {
+  generateProductStructure,
+  validateProductStructureConfig,
+} from "../generator/product-structure";
+import { getSearchableFields } from "../config/dynamic-index-configs";
 
 const generateNumericValues = (
   min: number,
@@ -34,7 +39,56 @@ const applyVariationToConfig = (
       break;
 
     case "descriptionWordLength":
-      config.descriptionWordLength = value as number;
+      const newLegacyStructure = generateProductStructure({
+        additionalFields: 1,
+        totalWords: value as number,
+      });
+      config.productStructure = newLegacyStructure;
+
+      const legacySearchableFields = getSearchableFields(
+        config.productStructure
+      );
+      config.searchQueries.fullTextSearch.fields = legacySearchableFields;
+      config.searchQueries.fuzzySearch.field =
+        legacySearchableFields[0] || "name";
+      break;
+
+    case "additionalFields":
+      const currentTotalWords = config.productStructure
+        ? config.productStructure.reduce(
+            (sum, field) => sum + field.wordCount,
+            0
+          )
+        : 10;
+
+      const newStructureConfig = {
+        additionalFields: value as number,
+        totalWords: currentTotalWords,
+      };
+
+      validateProductStructureConfig(newStructureConfig);
+      config.productStructure = generateProductStructure(newStructureConfig);
+
+      const newSearchableFields = getSearchableFields(config.productStructure);
+      config.searchQueries.fullTextSearch.fields = newSearchableFields;
+      config.searchQueries.fuzzySearch.field = newSearchableFields[0] || "name";
+      break;
+
+    case "totalWords":
+      const currentAdditionalFields = config.productStructure
+        ? config.productStructure.filter((field) => field.name !== "name")
+            .length
+        : 1;
+
+      const newWordStructureConfig = {
+        additionalFields: currentAdditionalFields,
+        totalWords: value as number,
+      };
+
+      validateProductStructureConfig(newWordStructureConfig);
+      config.productStructure = generateProductStructure(
+        newWordStructureConfig
+      );
       break;
 
     case "indexType":
@@ -69,7 +123,6 @@ const applyVariationToConfig = (
       throw new Error(`Unsupported variable type: ${variable}`);
   }
 
-  // Update index name to reflect the variation for uniqueness
   const suffix = typeof value === "string" ? value : value.toString();
   config.indexName = `${baseConfig.indexName}-${variable}-${suffix}`;
 

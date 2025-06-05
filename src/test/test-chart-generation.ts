@@ -65,7 +65,7 @@ const testChartGeneration = async () => {
     // Generate charts for each group
     for (const chartData of chartDataArray) {
       console.log(`\n📊 Generating charts for: "${chartData.chartName}"`);
-      console.log(`📊 Results count: ${chartData.results.length}`);
+      console.log(`📊 Data points count: ${chartData.dataPoints.length}`);
 
       const chartPaths = await generateAllCharts(chartData, {
         width: 800,

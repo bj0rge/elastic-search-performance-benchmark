@@ -7,6 +7,7 @@ import {
 import { createBenchmarkRunner, type VariableType } from "../campaign";
 import { logCampaignResult } from "../utils";
 import type { IndexType } from "../types";
+import { logProductStructure } from "../generator";
 
 type CLIArgs = {
   variable: VariableType;
@@ -17,6 +18,8 @@ type CLIArgs = {
   indexType?: IndexType;
   batches?: number;
   docsPerBatch?: number;
+  additionalFields?: number;
+  totalWords?: number;
   descLength?: number;
   chartName?: string;
   verbose?: boolean;
@@ -64,6 +67,14 @@ const parseArgs = (): CLIArgs => {
         parsed.docsPerBatch = parseInt(value);
         i++;
         break;
+      case "--additional-fields":
+        parsed.additionalFields = parseInt(value);
+        i++;
+        break;
+      case "--total-words":
+        parsed.totalWords = parseInt(value);
+        i++;
+        break;
       case "--desc-length":
         parsed.descLength = parseInt(value);
         i++;
@@ -87,12 +98,12 @@ const parseArgs = (): CLIArgs => {
 
 const showHelp = () => {
   console.log(`
-🎯 Elasticsearch Benchmark Campaign CLI
+🎯 Enhanced Elasticsearch Benchmark Campaign CLI
 
 Usage: npm run campaign:cli -- [options]
 
 Required Options:
-  --variable <type>       Variable to vary (numberOfBatches, documentsPerBatch, descriptionWordLength, indexType)
+  --variable <type>       Variable to vary (numberOfBatches, documentsPerBatch, additionalFields, totalWords, descriptionWordLength, indexType)
   --min <number>          Minimum value for the variable
   --max <number>          Maximum value for the variable
   --increment <number>    Increment step for the variable
@@ -102,25 +113,42 @@ Optional Configuration:
   --index-type <type>     Base index type (standard, ngram, stemming) [default: standard]
   --batches <number>      Base number of batches [default: 10]
   --docs-per-batch <num>  Base documents per batch [default: 100]
-  --desc-length <number>  Base description length [default: 1]
+
+Product Structure Options:
+  --additional-fields <n> Number of additional fields beyond 'name' [default: 1, creates 'description']
+  --total-words <number>  Total words to distribute across fields [default: 10]
+
+Legacy Options (for backward compatibility):
+  --desc-length <number>  Description length (creates single 'description' field) [DEPRECATED]
+
+Other Options:
   --chart-name <name>     Custom chart name for grouping results [default: auto-generated]
   --verbose               Enable verbose logging [default: false]
   --help, -h              Show this help message
 
-Chart Name Examples:
-  - "Batch Count Scaling" (auto-generated for numberOfBatches)
-  - "Index Type Comparison" (auto-generated for indexType)
-  - "My Custom Performance Test" (custom name)
+Product Structure Examples:
+
+  Legacy mode (--desc-length 100):
+  • Creates: { name: "...", description: "100 words" }
+
+  Default new mode (no field params):
+  • Creates: { name: "...", description: "10 words" }
+
+  Multiple fields (--additional-fields 3 --total-words 100):
+  • Creates: { name: "...", field1: "~33 words", field2: "~33 words", field3: "~34 words" }
 
 Examples:
-  # Vary documents per batch with custom chart name
-  npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --increment 300 --repetitions 3 --chart-name "Custom Batch Size Test"
+  # Test field count impact
+  npm run campaign:cli -- --variable additionalFields --min 1 --max 10 --increment 3 --repetitions 2 --total-words 100
 
-  # Vary description length with auto-generated chart name
-  npm run campaign:cli -- --variable descriptionWordLength --min 1 --max 10 --increment 2 --repetitions 2
+  # Test total words scaling
+  npm run campaign:cli -- --variable totalWords --min 10 --max 1000 --increment 200 --repetitions 3 --additional-fields 5
 
-  # Test different index types with custom chart name
-  npm run campaign:cli -- --variable indexType --min 0 --max 0 --increment 0 --repetitions 2 --chart-name "Production Index Analysis"
+  # Test description word length scaling
+  npm run campaign:cli -- --variable descriptionWordLength --min 10 --max 100 --increment 20 --repetitions 2
+
+  # Test batch size scaling with custom field structure
+  npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --increment 300 --repetitions 3 --additional-fields 3 --total-words 50
 `);
 };
 
@@ -134,6 +162,8 @@ const validateArgs = (args: CLIArgs): string[] => {
       "numberOfBatches",
       "documentsPerBatch",
       "descriptionWordLength",
+      "additionalFields",
+      "totalWords",
       "indexType",
       "numberOfUpdateBatches",
       "documentsPerUpdateBatch",
@@ -141,7 +171,7 @@ const validateArgs = (args: CLIArgs): string[] => {
     ].includes(args.variable)
   ) {
     errors.push(
-      "--variable must be one of: numberOfBatches, documentsPerBatch, descriptionWordLength, indexType, numberOfUpdateBatches, documentsPerUpdateBatch, fuzziness"
+      "--variable must be one of: numberOfBatches, documentsPerBatch, descriptionWordLength, additionalFields, totalWords, indexType, numberOfUpdateBatches, documentsPerUpdateBatch, fuzziness"
     );
   }
 
@@ -156,6 +186,22 @@ const validateArgs = (args: CLIArgs): string[] => {
 
   if (isNaN(args.repetitions) || args.repetitions <= 0) {
     errors.push("--repetitions must be a positive number");
+  }
+
+  if (args.additionalFields !== undefined && args.additionalFields < 0) {
+    errors.push("--additional-fields must be >= 0");
+  }
+
+  if (args.totalWords !== undefined && args.totalWords < 1) {
+    errors.push("--total-words must be >= 1");
+  }
+
+  if (args.additionalFields !== undefined && args.totalWords !== undefined) {
+    if (args.additionalFields > args.totalWords) {
+      errors.push(
+        `--additional-fields (${args.additionalFields}) cannot be greater than --total-words (${args.totalWords})`
+      );
+    }
   }
 
   return errors;
@@ -177,20 +223,32 @@ const runCLI = async () => {
     process.exit(1);
   }
 
-  console.log("🎯 Starting Campaign from CLI...\n");
+  console.log("🎯 Starting Enhanced Campaign from CLI...\n");
 
   try {
     const finalChartName = args.chartName || generateChartName(args.variable);
+
+    if (args.descLength !== undefined) {
+      console.log(
+        "⚠️  Using legacy --desc-length parameter. Consider migrating to --additional-fields and --total-words"
+      );
+    }
 
     const baseConfig = createBaseConfig({
       indexName: `cli-campaign-${args.variable}`,
       indexType: args.indexType,
       batches: args.batches,
       docsPerBatch: args.docsPerBatch,
+      additionalFields: args.additionalFields,
+      totalWords: args.totalWords,
       descWordLength: args.descLength,
       chartName: finalChartName,
       verbose: args.verbose,
     });
+
+    if (args.verbose && baseConfig.productStructure) {
+      logProductStructure(baseConfig.productStructure, true);
+    }
 
     const campaignConfig = createCampaignConfig(
       baseConfig,
@@ -216,8 +274,24 @@ const runCLI = async () => {
     }
     console.log(`\t- Repetitions: ${args.repetitions}`);
     console.log(
-      `\t- Base config: ${baseConfig.numberOfBatches} batches × ${baseConfig.documentsPerBatch} docs × ${baseConfig.descriptionWordLength} lines`
+      `\t- Base config: ${baseConfig.numberOfBatches} batches × ${baseConfig.documentsPerBatch} docs`
     );
+
+    if (baseConfig.productStructure) {
+      const totalWords = baseConfig.productStructure.reduce(
+        (sum, field) => sum + field.wordCount,
+        0
+      );
+      const additionalFields = baseConfig.productStructure.filter(
+        (field) => field.name !== "name"
+      ).length;
+      console.log(
+        `\t- Product structure: ${additionalFields} additional fields, ${totalWords} total words`
+      );
+    } else {
+      console.log(`\t- Product structure: legacy mode`);
+    }
+
     console.log("");
 
     const benchmarkRunner = createBenchmarkRunner({

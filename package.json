@@ -11,7 +11,7 @@
     "test:benchmark": "ts-node src/test/test-benchmark-runner.ts",
     "test:persistence": "ts-node src/test/test-persistence.ts",
     "test:campaign": "ts-node src/test/test-campaign.ts",
-    "test:chart-generation": "ts-node src/test/test-chart-generation.ts",
+    "test:dynamic-structure": "ts-node src/test/test-dynamic-structure.ts",
     "campaign:cli": "NODE_OPTIONS=\"--max-old-space-size=24126 --expose-gc\" ts-node src/cli/campaign-cli.ts",
     "chart:generate": "NODE_OPTIONS=\"--max-old-space-size=4096\" ts-node src/cli/chart-cli.ts",
     "chart:generate-verbose": "NODE_OPTIONS=\"--max-old-space-size=4096\" ts-node src/cli/chart-cli.ts --verbose",

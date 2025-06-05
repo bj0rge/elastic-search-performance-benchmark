@@ -4,6 +4,8 @@ export type VariableType =
   | "numberOfBatches"
   | "documentsPerBatch"
   | "descriptionWordLength"
+  | "additionalFields"
+  | "totalWords"
   | "indexType"
   | "numberOfUpdateBatches"
   | "documentsPerUpdateBatch"

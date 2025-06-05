@@ -1,22 +1,54 @@
 import type { BenchmarkConfig, IndexType } from "../types/benchmark";
 import type { CampaignConfig, VariableType } from "./types";
+import {
+  generateProductStructure,
+  validateProductStructureConfig,
+} from "../generator/product-structure";
+import { getSearchableFields } from "../config/dynamic-index-configs";
 
 export const createBaseConfig = (options: {
   indexName: string;
   indexType?: IndexType;
   batches?: number;
   docsPerBatch?: number;
+  additionalFields?: number;
+  totalWords?: number;
   descWordLength?: number;
   verbose?: boolean;
   chartName?: string;
 }): BenchmarkConfig => {
+  let structureConfig;
+
+  if (options.descWordLength !== undefined) {
+    structureConfig = {
+      additionalFields: 1,
+      totalWords: options.descWordLength,
+    };
+  } else {
+    structureConfig = {
+      additionalFields: options.additionalFields ?? 1,
+      totalWords: options.totalWords ?? 10,
+    };
+  }
+
+  validateProductStructureConfig(structureConfig);
+  const productStructure = generateProductStructure(structureConfig);
+
+  const searchableFields = getSearchableFields(productStructure);
+
+  if (searchableFields.length === 0) {
+    throw new Error(
+      "No searchable fields found. At least one field with words is required."
+    );
+  }
+
   return {
     indexName: options.indexName,
     indexType: options.indexType || "standard",
     chartName: options.chartName,
+    productStructure,
     numberOfBatches: options.batches || 10,
     documentsPerBatch: options.docsPerBatch || 100,
-    descriptionWordLength: options.descWordLength || 10,
     updateConfig: {
       numberOfUpdateBatches: Math.max(
         1,
@@ -29,11 +61,11 @@ export const createBaseConfig = (options: {
     },
     searchQueries: {
       fullTextSearch: {
-        fields: ["name", "description"],
+        fields: searchableFields,
         terms: ["product", "electronic", "device", "news", "article"],
       },
       fuzzySearch: {
-        field: "name",
+        field: searchableFields[0],
         terms: ["produc", "electro", "devic", "nws", "articl"],
         fuzziness: "AUTO",
       },
@@ -47,13 +79,15 @@ export const generateChartName = (variable: VariableType): string => {
     numberOfBatches: "Batch Count Scaling",
     documentsPerBatch: "Batch Size Scaling",
     descriptionWordLength: "Content Length Scaling (in words)",
+    additionalFields: "Field Count Impact",
+    totalWords: "Content Length Scaling (words)",
     indexType: "Index Type Comparison",
     numberOfUpdateBatches: "Update Batch Scaling",
     documentsPerUpdateBatch: "Update Batch Size Impact",
     fuzziness: "Fuzziness Optimization",
   };
 
-  return chartNames[variable];
+  return chartNames[variable] || `${variable} Analysis`;
 };
 
 export const createCampaignConfig = (

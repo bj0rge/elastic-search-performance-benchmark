@@ -1,29 +1,62 @@
 import { faker } from "@faker-js/faker";
 import { Product } from "../types";
 import * as fs from "fs";
+import { FieldDefinition } from "./product-structure";
 
 const UPDATE_NAME_PROBABILITY = 0.3;
 
 type Corpus = string[];
 
 export type DataGenerator = {
-  generateProduct: (descriptionWordLength: number) => Product;
-  generateProducts: (count: number, descriptionWordLength: number) => Product[];
-  generateProductAsync: (descriptionWordLength: number) => Promise<Product>;
+  generateProduct: (productStructure: FieldDefinition[]) => Product;
+  generateProducts: (
+    count: number,
+    productStructure: FieldDefinition[]
+  ) => Product[];
+  generateProductAsync: (
+    productStructure: FieldDefinition[]
+  ) => Promise<Product>;
   generateProductsAsync: (
     count: number,
-    descriptionWordLength: number
+    productStructure: FieldDefinition[]
   ) => Promise<Product[]>;
   generateProductsStream: (
     count: number,
+    productStructure: FieldDefinition[]
+  ) => AsyncGenerator<Product, void, unknown>;
+  generateProductUpdate: (
+    productStructure: FieldDefinition[]
+  ) => Partial<Product>;
+  generateProductUpdates: (
+    count: number,
+    productStructure: FieldDefinition[]
+  ) => Partial<Product>[];
+
+  generateProductLegacy: (descriptionWordLength: number) => Product;
+  generateProductsLegacy: (
+    count: number,
+    descriptionWordLength: number
+  ) => Product[];
+  generateProductAsyncLegacy: (
+    descriptionWordLength: number
+  ) => Promise<Product>;
+  generateProductsAsyncLegacy: (
+    count: number,
+    descriptionWordLength: number
+  ) => Promise<Product[]>;
+  generateProductsStreamLegacy: (
+    count: number,
     descriptionWordLength: number
   ) => AsyncGenerator<Product, void, unknown>;
-  generateProductUpdate: (descriptionWordLength: number) => Partial<Product>;
-  generateProductUpdates: (
+  generateProductUpdateLegacy: (
+    descriptionWordLength: number
+  ) => Partial<Product>;
+  generateProductUpdatesLegacy: (
     count: number,
     descriptionWordLength: number
   ) => Partial<Product>[];
-  corpus: Corpus; // Exposer le corpus pour les phases qui en ont besoin
+
+  corpus: Corpus;
 };
 
 const loadCorpus = (filePath: string): Corpus => {
@@ -39,13 +72,11 @@ const loadCorpus = (filePath: string): Corpus => {
 };
 
 const generateDescription = (corpus: Corpus, wordCount: number): string => {
-  // console.log(
-  //   `📝 Generating large description with ${wordCount.toLocaleString()} words...`
-  // );
+  if (wordCount === 0) return "";
 
   const chunks: string[] = [];
   let currentWordCount = 0;
-  const chunkTargetSize = 5000; // Traiter par chunks de 5000 mots
+  const chunkTargetSize = 5000;
 
   while (currentWordCount < wordCount) {
     const remainingWords = wordCount - currentWordCount;
@@ -54,29 +85,12 @@ const generateDescription = (corpus: Corpus, wordCount: number): string => {
     const chunk = generateDescriptionChunk(corpus, targetWordsForChunk);
     chunks.push(chunk);
 
-    // Compter les mots réels dans le chunk
     const chunkWords = chunk.split(/\s+/).length;
     currentWordCount += chunkWords;
-
-    // Log progress pour les très gros documents
-    // if (wordCount > 100000 && chunks.length % 50 === 0) {
-    //   const progress = ((currentWordCount / wordCount) * 100).toFixed(1);
-    //   console.log(
-    //     `    📄 Progress: ${progress}% (${currentWordCount.toLocaleString()}/${wordCount.toLocaleString()} words)`
-    //   );
-    // }
   }
 
-  // console.log(
-  //   `✅ Large description generated (${
-  //     chunks.length
-  //   } chunks, ${currentWordCount.toLocaleString()} words)`
-  // );
   const result = chunks.join("\n");
-
-  // Libérer les chunks
   chunks.length = 0;
-
   return result;
 };
 
@@ -87,7 +101,6 @@ const generateDescriptionChunk = (
   const selectedLines: string[] = [];
   let currentWordCount = 0;
 
-  // Pour les gros chunks, permettre la réutilisation des lignes
   while (currentWordCount < wordCount) {
     const randomIndex = Math.floor(Math.random() * corpus.length);
     const line = corpus[randomIndex];
@@ -97,7 +110,6 @@ const generateDescriptionChunk = (
       selectedLines.push(line);
       currentWordCount += lineWords.length;
     } else {
-      // Ajouter seulement les mots nécessaires pour atteindre le target
       const remainingWords = wordCount - currentWordCount;
       const truncatedLine = lineWords.slice(0, remainingWords).join(" ");
       selectedLines.push(truncatedLine);
@@ -116,12 +128,10 @@ const generateDescriptionAsync = async (
     throw new Error("No corpus loaded");
   }
 
-  // Pour des descriptions très larges, utiliser le traitement asynchrone
   if (wordCount > 50000) {
     return await generateDescriptionLargeAsync(corpus, wordCount);
   }
 
-  // Pour les autres, utiliser la méthode normale
   return generateDescription(corpus, wordCount);
 };
 
@@ -129,10 +139,6 @@ const generateDescriptionLargeAsync = async (
   corpus: Corpus,
   wordCount: number
 ): Promise<string> => {
-  // console.log(
-  //   `📝 Async generating large description with ${wordCount.toLocaleString()} words...`
-  // );
-
   const chunks: string[] = [];
   let currentWordCount = 0;
   const chunkTargetSize = 5000;
@@ -149,14 +155,7 @@ const generateDescriptionLargeAsync = async (
     currentWordCount += chunkWords;
     chunkCount++;
 
-    // Log progress et permettre GC pour les très gros documents
     if (wordCount > 200000 && chunkCount % 100 === 0) {
-      const progress = ((currentWordCount / wordCount) * 100).toFixed(1);
-      // console.log(
-      //   `    📄 Progress: ${progress}% (${currentWordCount.toLocaleString()}/${wordCount.toLocaleString()} words)`
-      // );
-
-      // Forcer le garbage collection et yield pour éviter le blocking
       if (global.gc) {
         global.gc();
       }
@@ -164,72 +163,83 @@ const generateDescriptionLargeAsync = async (
     }
   }
 
-  // console.log(
-  //   `✅ Async large description generated (${
-  //     chunks.length
-  //   } chunks, ${currentWordCount.toLocaleString()} words)`
-  // );
   const result = chunks.join("\n");
-
-  // Libérer les chunks
   chunks.length = 0;
-
   return result;
 };
 
-const generateProduct = (
+const generateProductFromStructure = (
   corpus: Corpus,
-  descriptionWordLength: number = 1
+  productStructure: FieldDefinition[]
 ): Product => {
-  return {
+  const product: any = {
     id: crypto.randomUUID(),
-    name: faker.commerce.productName(),
-    description: generateDescription(corpus, descriptionWordLength),
     createdAt: new Date(),
   };
+
+  productStructure.forEach((field) => {
+    if (field.name === "name") {
+      product.name = faker.commerce.productName();
+    } else {
+      product[field.name] = generateDescription(corpus, field.wordCount);
+    }
+  });
+
+  return product as Product;
 };
 
-const generateProductAsync = async (
+const generateProductFromStructureAsync = async (
   corpus: Corpus,
-  descriptionWordLength: number = 1
+  productStructure: FieldDefinition[]
 ): Promise<Product> => {
-  return {
+  const product: any = {
     id: crypto.randomUUID(),
-    name: faker.commerce.productName(),
-    description: await generateDescriptionAsync(corpus, descriptionWordLength),
     createdAt: new Date(),
   };
+
+  for (const field of productStructure) {
+    if (field.name === "name") {
+      product.name = faker.commerce.productName();
+    } else {
+      product[field.name] = await generateDescriptionAsync(
+        corpus,
+        field.wordCount
+      );
+    }
+  }
+
+  return product as Product;
 };
 
 const generateProductUpdate = (
   corpus: Corpus,
-  descriptionWordLength: number = 1
+  productStructure: FieldDefinition[]
 ): Partial<Product> => {
-  const update: Partial<Product> = {
-    description: generateDescription(corpus, descriptionWordLength),
-  };
+  const update: any = {};
 
-  if (Math.random() < UPDATE_NAME_PROBABILITY) {
-    update.name = faker.commerce.productName();
-  }
+  productStructure.forEach((field) => {
+    if (field.name === "name") {
+      if (Math.random() < UPDATE_NAME_PROBABILITY) {
+        update.name = faker.commerce.productName();
+      }
+    } else {
+      update[field.name] = generateDescription(corpus, field.wordCount);
+    }
+  });
 
   return update;
 };
 
-// Générateur streaming pour traiter les documents un par un
 async function* generateProductsStream({
   corpus,
   count,
-  descriptionWordLength,
+  productStructure,
 }: {
   corpus: Corpus;
   count: number;
-  descriptionWordLength?: number;
+  productStructure: FieldDefinition[];
 }): AsyncGenerator<Product, void, unknown> {
-  const wordLength = descriptionWordLength ?? 1;
-  console.log(
-    `🏭 Streaming generation of ${count} products with ${wordLength.toLocaleString()} words each...`
-  );
+  console.log(`🏭 Streaming generation of ${count} products...`);
 
   const fifteenPercent = Math.floor(count * 0.15);
   for (let i = 0; i < count; i++) {
@@ -240,29 +250,22 @@ async function* generateProductsStream({
         )}%, generated documents ${i}/${count}`
       );
     }
-    // console.log(`📦 Generating product ${i + 1}/${count}...`);
 
-    const product = await generateProductAsync(corpus, descriptionWordLength);
+    const product = await generateProductFromStructureAsync(
+      corpus,
+      productStructure
+    );
     yield product;
 
-    // Log progress et memory usage
-    // if (count > 5 && (i + 1) % Math.max(1, Math.floor(count / 15)) === 0) {
-    //   const progress = (((i + 1) / count) * 100).toFixed(1);
-    //   const memUsage = process.memoryUsage();
-    //   console.log(
-    //     `📊 Streaming progress: ${progress}% - Memory: ${Math.round(
-    //       memUsage.heapUsed / 1024 / 1024
-    //     )}MB heap`
-    //   );
-    // }
-
-    // Forcer le garbage collection pour les très gros documents
-    if (wordLength > 100000) {
+    const totalWords = productStructure.reduce(
+      (sum, field) => sum + field.wordCount,
+      0
+    );
+    if (totalWords > 100000) {
       if (global.gc) {
         global.gc();
       }
-      // Délai pour permettre le GC et éviter de saturer le système
-      if (wordLength > 500000) {
+      if (totalWords > 500000) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -271,37 +274,36 @@ async function* generateProductsStream({
   console.log(`✅ Streaming generation completed for ${count} products`);
 }
 
-// Version async pour générer plusieurs produits
 const generateProductsAsync = async ({
   corpus,
   count,
-  descriptionWordLength,
+  productStructure,
 }: {
   corpus: Corpus;
   count: number;
-  descriptionWordLength?: number;
+  productStructure: FieldDefinition[];
 }): Promise<Product[]> => {
-  const wordLength = descriptionWordLength ?? 1;
-  // Pour de gros documents ou beaucoup de documents, recommander l'usage du stream
-  if (wordLength > 50000 || count * wordLength > 500000) {
+  const totalWords = productStructure.reduce(
+    (sum, field) => sum + field.wordCount,
+    0
+  );
+
+  if (totalWords > 50000 || count * totalWords > 500000) {
     console.log(
       `⚠️  Large generation detected. Consider using generateProductsStream instead for better memory management.`
     );
   }
 
   const products: Product[] = [];
-
-  console.log(
-    `🏭 Async generating ${count} products with ${wordLength.toLocaleString()} words each...`
-  );
+  console.log(`🏭 Async generating ${count} products...`);
 
   for (let i = 0; i < count; i++) {
-    // console.log(`📦 Generating product ${i + 1}/${count}...`);
-
-    const product = await generateProductAsync(corpus, descriptionWordLength);
+    const product = await generateProductFromStructureAsync(
+      corpus,
+      productStructure
+    );
     products.push(product);
 
-    // Log progress
     if (count > 5 && (i + 1) % Math.max(1, Math.floor(count / 10)) === 0) {
       const progress = (((i + 1) / count) * 100).toFixed(1);
       const memUsage = process.memoryUsage();
@@ -312,8 +314,7 @@ const generateProductsAsync = async ({
       );
     }
 
-    // Forcer le garbage collection pour les très gros documents
-    if (wordLength > 100000) {
+    if (totalWords > 100000) {
       if (global.gc) {
         global.gc();
       }
@@ -332,36 +333,118 @@ export const createDataGenerator = (corpusFilePath: string): DataGenerator => {
       : [];
 
   return {
-    generateProduct: (descriptionWordLength: number = 1) =>
-      generateProduct(corpus, descriptionWordLength),
+    generateProduct: (productStructure: FieldDefinition[]) =>
+      generateProductFromStructure(corpus, productStructure),
 
-    generateProducts: (count: number, descriptionWordLength: number = 1) =>
+    generateProducts: (count: number, productStructure: FieldDefinition[]) =>
       Array.from({ length: count }, () =>
-        generateProduct(corpus, descriptionWordLength)
+        generateProductFromStructure(corpus, productStructure)
       ),
 
-    generateProductAsync: (descriptionWordLength: number = 1) =>
-      generateProductAsync(corpus, descriptionWordLength),
+    generateProductAsync: (productStructure: FieldDefinition[]) =>
+      generateProductFromStructureAsync(corpus, productStructure),
 
-    generateProductsAsync: (count: number, descriptionWordLength: number = 1) =>
-      generateProductsAsync({ corpus, count, descriptionWordLength }),
+    generateProductsAsync: (
+      count: number,
+      productStructure: FieldDefinition[]
+    ) => generateProductsAsync({ corpus, count, productStructure }),
 
     generateProductsStream: (
       count: number,
-      descriptionWordLength: number = 1
-    ) => generateProductsStream({ corpus, count, descriptionWordLength }),
+      productStructure: FieldDefinition[]
+    ) => generateProductsStream({ corpus, count, productStructure }),
 
-    generateProductUpdate: (descriptionWordLength: number = 1) =>
-      generateProductUpdate(corpus, descriptionWordLength),
+    generateProductUpdate: (productStructure: FieldDefinition[]) =>
+      generateProductUpdate(corpus, productStructure),
 
     generateProductUpdates: (
       count: number,
-      descriptionWordLength: number = 1
+      productStructure: FieldDefinition[]
     ) =>
       Array.from({ length: count }, () =>
-        generateProductUpdate(corpus, descriptionWordLength)
+        generateProductUpdate(corpus, productStructure)
       ),
 
-    corpus, // Exposer le corpus
+    generateProductLegacy: (descriptionWordLength: number = 1) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return generateProductFromStructure(corpus, legacyStructure);
+    },
+
+    generateProductsLegacy: (
+      count: number,
+      descriptionWordLength: number = 1
+    ) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return Array.from({ length: count }, () =>
+        generateProductFromStructure(corpus, legacyStructure)
+      );
+    },
+
+    generateProductAsyncLegacy: (descriptionWordLength: number = 1) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return generateProductFromStructureAsync(corpus, legacyStructure);
+    },
+
+    generateProductsAsyncLegacy: (
+      count: number,
+      descriptionWordLength: number = 1
+    ) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return generateProductsAsync({
+        corpus,
+        count,
+        productStructure: legacyStructure,
+      });
+    },
+
+    generateProductsStreamLegacy: (
+      count: number,
+      descriptionWordLength: number = 1
+    ) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return generateProductsStream({
+        corpus,
+        count,
+        productStructure: legacyStructure,
+      });
+    },
+
+    generateProductUpdateLegacy: (descriptionWordLength: number = 1) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return generateProductUpdate(corpus, legacyStructure);
+    },
+
+    generateProductUpdatesLegacy: (
+      count: number,
+      descriptionWordLength: number = 1
+    ) => {
+      const legacyStructure = [
+        { name: "name", wordCount: 0 },
+        { name: "description", wordCount: descriptionWordLength },
+      ];
+      return Array.from({ length: count }, () =>
+        generateProductUpdate(corpus, legacyStructure)
+      );
+    },
+
+    corpus,
   };
 };

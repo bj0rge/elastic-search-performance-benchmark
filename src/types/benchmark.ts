@@ -1,3 +1,5 @@
+import { FieldDefinition } from "../generator";
+
 export type IndexType = "standard" | "ngram" | "stemming";
 
 export type BenchmarkConfig = {
@@ -6,13 +8,15 @@ export type BenchmarkConfig = {
   indexType: IndexType;
   chartName?: string;
 
+  // Product structure configuration
+  productStructure: FieldDefinition[];
+
   // Logging
   verbose: boolean;
 
   // Data configuration
   numberOfBatches: number;
   documentsPerBatch: number;
-  descriptionWordLength: number;
 
   // Update configuration
   updateConfig: {
@@ -27,6 +31,7 @@ export type BenchmarkConfig = {
       terms: string[];
     };
     fuzzySearch: {
+      // Only one field is supported for fuzzy search
       field: string;
       terms: string[];
       fuzziness: string | number;

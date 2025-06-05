@@ -34,7 +34,7 @@ const generateAndIndexProducts = async ({
   config: { productsToGenerate: number; productDescriptionWordLength: number };
 }): Promise<Product[]> => {
   console.log("Generating test products...");
-  const products = dataGenerator.generateProducts(
+  const products = dataGenerator.generateProductsLegacy(
     productsToGenerate,
     productDescriptionWordLength
   );
@@ -109,7 +109,9 @@ const bulkUpdateProducts = async ({
 
   const updates = productsToUpdate.map((product) => ({
     id: product.id,
-    updates: dataGenerator.generateProductUpdate(updateDescriptionWordLength),
+    updates: dataGenerator.generateProductUpdateLegacy(
+      updateDescriptionWordLength
+    ),
   }));
 
   console.log(`Updating ${updates.length} products...`);

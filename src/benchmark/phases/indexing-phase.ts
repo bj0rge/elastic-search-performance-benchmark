@@ -20,39 +20,35 @@ export type IndexingPhaseResult = {
 export const executeIndexingPhase = async (
   context: BenchmarkContext
 ): Promise<IndexingPhaseResult> => {
-  const { client, dataGenerator, config } = context;
-  const {
-    indexName,
-    numberOfBatches,
-    documentsPerBatch,
-    descriptionWordLength,
-    verbose,
-  } = config;
+  const { config } = context;
+  const { productStructure, verbose } = config;
 
   const logger = buildLogger(verbose);
 
-  // Détecter les très gros documents et utiliser différentes stratégies
-  if (descriptionWordLength > 100000) {
+  const totalWords = productStructure
+    ? productStructure.reduce((sum, field) => sum + field.wordCount, 0)
+    : 0;
+
+  if (totalWords > 100000) {
     logger.log(
-      `🚨 Very large documents detected: ${descriptionWordLength.toLocaleString()} words per document`
+      `🚨 Very large documents detected: ${totalWords.toLocaleString()} words per document`
     );
     logger.log(`🔧 Switching to streaming mode for memory efficiency`);
 
     return await executeIndexingPhaseStreaming(context);
-  } else if (descriptionWordLength > 10000) {
+  } else if (totalWords > 10000) {
     logger.log(
-      `⚠️  Large documents detected: ${descriptionWordLength.toLocaleString()} words per document`
+      `⚠️  Large documents detected: ${totalWords.toLocaleString()} words per document`
     );
     logger.log(`🔧 Using async generation with smaller batches`);
 
     return await executeIndexingPhaseAsync(context);
   }
 
-  // Mode normal pour les petits documents
   return await executeIndexingPhaseNormal(context);
 };
 
-// Mode normal pour les petits documents (<=10k mots)
+// Normal mode for small documents (<=10k words)
 const executeIndexingPhaseNormal = async (
   context: BenchmarkContext
 ): Promise<IndexingPhaseResult> => {
@@ -61,7 +57,7 @@ const executeIndexingPhaseNormal = async (
     indexName,
     numberOfBatches,
     documentsPerBatch,
-    descriptionWordLength,
+    productStructure,
     verbose,
   } = config;
 
@@ -81,10 +77,7 @@ const executeIndexingPhaseNormal = async (
 
       const batchStartTime = Date.now();
 
-      const products = dataGenerator.generateProducts(
-        documentsPerBatch,
-        descriptionWordLength
-      );
+      const products = dataGenerator.generateProducts(documentsPerBatch);
 
       const bulkResult = await elasticSdk.bulkIndex(
         client,
@@ -133,7 +126,7 @@ const executeIndexingPhaseNormal = async (
   }
 };
 
-// Mode async pour les documents moyens (10k-100k mots)
+// Async mode for medium documents (10k-100k words)
 const executeIndexingPhaseAsync = async (
   context: BenchmarkContext
 ): Promise<IndexingPhaseResult> => {
@@ -142,21 +135,22 @@ const executeIndexingPhaseAsync = async (
     indexName,
     numberOfBatches,
     documentsPerBatch,
-    descriptionWordLength,
+    productStructure,
     verbose,
   } = config;
 
   const logger = buildLogger(verbose);
 
-  // Réduire la taille des batches pour les documents moyens
   const reducedBatchSize = Math.min(documentsPerBatch, 50);
 
   logger.log(
     `🔄 Starting ASYNC indexing phase: ${numberOfBatches} batches of ${reducedBatchSize} documents`
   );
-  logger.log(
-    `📊 Document size: ${descriptionWordLength?.toLocaleString()} words each`
-  );
+
+  const totalWords = productStructure
+    ? productStructure.reduce((sum, field) => sum + field.wordCount, 0)
+    : 0;
+  logger.log(`📊 Document size: ${totalWords?.toLocaleString()} words each`);
 
   const batchResults: IndexingPhaseResult["batchResults"] = [];
   const indexedProducts: Product[] = [];
@@ -171,8 +165,7 @@ const executeIndexingPhaseAsync = async (
       const batchStartTime = Date.now();
 
       const products = await dataGenerator.generateProductsAsync(
-        reducedBatchSize,
-        descriptionWordLength
+        reducedBatchSize
       );
 
       logger.log(`\t📤 Indexing ${products.length} documents...`);
@@ -189,7 +182,10 @@ const executeIndexingPhaseAsync = async (
         id: p.id,
         name: p.name,
         createdAt: p.createdAt,
-        description: p.description.substring(0, 200) + "...", // Aperçu seulement
+        description:
+          typeof p.description === "string"
+            ? p.description.substring(0, 200) + "…"
+            : String(p.description).substring(0, 200) + "…",
       })) as Product[];
 
       indexedProducts.push(...lightProducts);
@@ -246,7 +242,7 @@ const executeIndexingPhaseStreaming = async (
     indexName,
     numberOfBatches,
     documentsPerBatch,
-    descriptionWordLength,
+    productStructure,
     verbose,
   } = config;
 
@@ -258,9 +254,11 @@ const executeIndexingPhaseStreaming = async (
       numberOfBatches * documentsPerBatch
     } total documents`
   );
-  logger.log(
-    `📄 Document size: ${descriptionWordLength?.toLocaleString()} words each`
-  );
+
+  const totalWords = productStructure
+    ? productStructure.reduce((sum, field) => sum + field.wordCount, 0)
+    : 0;
+  logger.log(`📄 Document size: ${totalWords?.toLocaleString()} words each`);
 
   const batchResults: IndexingPhaseResult["batchResults"] = [];
   const indexedProductsMetadata: Partial<Product>[] = [];
@@ -276,10 +274,8 @@ const executeIndexingPhaseStreaming = async (
       let batchErrors = 0;
 
       // Utiliser le générateur streaming pour traiter un document à la fois
-      const productStream = dataGenerator.generateProductsStream(
-        documentsPerBatch,
-        descriptionWordLength
-      );
+      const productStream =
+        dataGenerator.generateProductsStream(documentsPerBatch);
 
       let docNumber = 1;
       for await (const product of productStream) {
