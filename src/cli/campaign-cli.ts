@@ -24,6 +24,8 @@ type CLIArgs = {
   chartName?: string;
   verbose?: boolean;
   help?: boolean;
+  skipUpdate?: boolean;
+  skipSearch?: boolean;
 };
 
 const parseArgs = (): CLIArgs => {
@@ -86,6 +88,13 @@ const parseArgs = (): CLIArgs => {
       case "--verbose":
         parsed.verbose = true;
         break;
+      case "--skip-update":
+        parsed.skipUpdate = true;
+        break;
+      case "--skip-search":
+        parsed.skipSearch = true;
+        break;
+
       case "--help":
       case "-h":
         parsed.help = true;
@@ -108,6 +117,10 @@ Required Options:
   --max <number>          Maximum value for the variable
   --increment <number>    Increment step for the variable
   --repetitions <number>  Number of times to repeat each configuration
+
+  Phase Control Options:
+  --skip-update          Skip the update/reindexing phase
+  --skip-search          Skip the search performance phase
 
 Optional Configuration:
   --index-type <type>     Base index type (standard, ngram, stemming) [default: standard]
@@ -207,6 +220,14 @@ const validateArgs = (args: CLIArgs): string[] => {
   return errors;
 };
 
+const determinePhases = (args: CLIArgs) => {
+  return {
+    indexing: true,
+    updates: !args.skipUpdate,
+    search: !args.skipSearch,
+  };
+};
+
 const runCLI = async () => {
   const args = parseArgs();
 
@@ -223,7 +244,17 @@ const runCLI = async () => {
     process.exit(1);
   }
 
+  const phases = determinePhases(args);
+
   console.log("🎯 Starting Enhanced Campaign from CLI...\n");
+  console.log("📋 Campaign Configuration:");
+  console.log(`\t- Variable: ${args.variable}`);
+  console.log(
+    `\t- Phases: ${Object.entries(phases)
+      .filter(([_, enabled]) => enabled)
+      .map(([name]) => name)
+      .join(", ")}`
+  );
 
   try {
     const finalChartName = args.chartName || generateChartName(args.variable);
@@ -300,6 +331,7 @@ const runCLI = async () => {
         deleteIndexBefore: true,
         deleteIndexAfter: true,
       },
+      phases,
     });
 
     const result = await runCampaign(campaignConfig, benchmarkRunner, {

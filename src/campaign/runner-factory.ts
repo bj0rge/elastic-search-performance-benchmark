@@ -3,15 +3,35 @@ import type { BenchmarkConfig } from "../types/benchmark";
 import { runBenchmark } from "../benchmark/runner";
 import { saveBenchmarkResults } from "../persistence";
 
-export const createBenchmarkRunner = (options: {
+type RunnerOptions = {
   verbose?: boolean;
   cleanup?: {
     deleteIndexBefore?: boolean;
     deleteIndexAfter?: boolean;
   };
-}): BenchmarkRunner => {
+  phases?: {
+    indexing?: boolean;
+    updates?: boolean;
+    search?: boolean;
+  };
+};
+
+export const createBenchmarkRunner = (
+  options: RunnerOptions = {}
+): BenchmarkRunner => {
   return async (config: BenchmarkConfig) => {
+    const phases = options.phases || {
+      indexing: true,
+      updates: true,
+      search: true,
+    };
+
+    const enabledPhases = Object.entries(phases)
+      .filter(([_, enabled]) => enabled)
+      .map(([name]) => name);
+
     console.log(`🔄 Running benchmark: ${config.indexName}`);
+    console.log(`📊 Phases: ${enabledPhases.join(", ")}`);
 
     const result = await runBenchmark(config, {
       verbose: options.verbose ?? false,
@@ -19,6 +39,7 @@ export const createBenchmarkRunner = (options: {
         deleteIndexBefore: true,
         deleteIndexAfter: true,
       },
+      phases: phases,
     });
 
     const rawBenchmarkData = {
@@ -33,15 +54,26 @@ export const createBenchmarkRunner = (options: {
   };
 };
 
-export const createMockRunner = (): BenchmarkRunner => {
+export const createMockRunner = (
+  options: RunnerOptions = {}
+): BenchmarkRunner => {
   return async (config: BenchmarkConfig) => {
+    const phases = options.phases || {
+      indexing: true,
+      updates: true,
+      search: true,
+    };
+
     console.log(`🧪 Mock run with config:`);
     console.log(`\t- Index: ${config.indexName}`);
     console.log(`\t- Type: ${config.indexType}`);
     console.log(`\t- Batches: ${config.numberOfBatches}`);
     console.log(`\t- Docs per batch: ${config.documentsPerBatch}`);
     console.log(
-      `\t- Description length (in words): ${config.productStructure}`
+      `\t- Phases: ${Object.entries(phases)
+        .filter(([_, enabled]) => enabled)
+        .map(([name]) => name)
+        .join(", ")}`
     );
 
     await new Promise((resolve) => setTimeout(resolve, 100));
