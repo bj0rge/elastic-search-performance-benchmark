@@ -7,15 +7,24 @@ services:
       - cluster.name=benchmark-cluster
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
+      - http.max_content_length=1gb
+      - http.max_header_size=16kb
+      - thread_pool.write.queue_size=1000
+      - cluster.routing.allocation.disk.watermark.low=95%
+      - cluster.routing.allocation.disk.watermark.high=97%
+      - cluster.routing.allocation.disk.watermark.flood_stage=99%
     ulimits:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: 262144
+        hard: 262144
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
@@ -23,8 +32,7 @@ services:
       - "9300:9300"
     networks:
       - elastic
-
-
+    restart: unless-stopped
 
 volumes:
   elasticsearch_data:

@@ -16,7 +16,7 @@ const generateSampleData = async () => {
     indexType: "standard",
     batches: 5,
     docsPerBatch: 50,
-    descLength: 1,
+    descWordLength: 1,
     chartName: "Test Chart - Document Scaling",
     verbose: false,
   });

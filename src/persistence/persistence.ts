@@ -78,7 +78,10 @@ const calculateIndexingMetrics = (data: RawIndexingData): IndexingMetrics => {
   );
 
   return {
-    ...data,
+    totalDocuments: data.totalDocuments,
+    totalBatches: data.totalBatches,
+    batchResults: data.batchResults,
+    refreshTimeMs: data.refreshTimeMs,
     totalIndexingTimeMs,
     averageTimePerDocumentMs: parseFloat(
       (totalIndexingTimeMs / data.totalDocuments).toFixed(2)

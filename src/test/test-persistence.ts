@@ -14,7 +14,7 @@ const testPersistence = async () => {
       indexType: "standard",
       numberOfBatches: 2,
       documentsPerBatch: 5,
-      descriptionLength: 1,
+      descriptionWordLength: 1,
       updateConfig: {
         numberOfUpdateBatches: 1,
         documentsPerUpdateBatch: 3,

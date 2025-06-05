@@ -8,7 +8,7 @@ const createTestConfig = (): BenchmarkConfig => ({
 
   numberOfBatches: 3,
   documentsPerBatch: 10,
-  descriptionLength: 2,
+  descriptionWordLength: 2,
 
   updateConfig: {
     numberOfUpdateBatches: 2,

@@ -6,7 +6,7 @@ export const createBaseConfig = (options: {
   indexType?: IndexType;
   batches?: number;
   docsPerBatch?: number;
-  descLength?: number;
+  descWordLength?: number;
   verbose?: boolean;
   chartName?: string;
 }): BenchmarkConfig => {
@@ -16,7 +16,7 @@ export const createBaseConfig = (options: {
     chartName: options.chartName,
     numberOfBatches: options.batches || 10,
     documentsPerBatch: options.docsPerBatch || 100,
-    descriptionLength: options.descLength || 1,
+    descriptionWordLength: options.descWordLength || 10,
     updateConfig: {
       numberOfUpdateBatches: Math.max(
         1,
@@ -46,7 +46,7 @@ export const generateChartName = (variable: VariableType): string => {
   const chartNames: Record<VariableType, string> = {
     numberOfBatches: "Batch Count Scaling",
     documentsPerBatch: "Batch Size Scaling",
-    descriptionLength: "Content Length Scaling",
+    descriptionWordLength: "Content Length Scaling (in words)",
     indexType: "Index Type Comparison",
     numberOfUpdateBatches: "Update Batch Scaling",
     documentsPerUpdateBatch: "Update Batch Size Impact",

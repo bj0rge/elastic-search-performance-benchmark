@@ -12,7 +12,7 @@
     "test:persistence": "ts-node src/test/test-persistence.ts",
     "test:campaign": "ts-node src/test/test-campaign.ts",
     "test:chart-generation": "ts-node src/test/test-chart-generation.ts",
-    "campaign:cli": "ts-node src/cli/campaign-cli.ts",
+    "campaign:cli": "NODE_OPTIONS=\"--max-old-space-size=24126 --expose-gc\" ts-node src/cli/campaign-cli.ts",
     "chart:generate": "NODE_OPTIONS=\"--max-old-space-size=4096\" ts-node src/cli/chart-cli.ts",
     "chart:generate-verbose": "NODE_OPTIONS=\"--max-old-space-size=4096\" ts-node src/cli/chart-cli.ts --verbose",
     "chart:clear-cache": "rm -rf data/cache/aggregations.json",

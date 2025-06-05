@@ -19,7 +19,7 @@ export const executeUpdatePhase = async (
   context: BenchmarkContext
 ): Promise<UpdatePhaseResult> => {
   const { client, dataGenerator, config, indexedProducts } = context;
-  const { indexName, updateConfig, descriptionLength, verbose } = config;
+  const { indexName, updateConfig, descriptionWordLength, verbose } = config;
   const { numberOfUpdateBatches, documentsPerUpdateBatch } = updateConfig;
 
   const logger = buildLogger(verbose);
@@ -79,7 +79,10 @@ export const executeUpdatePhase = async (
 
       const updates = batchProducts.map((product) => ({
         id: product.id,
-        updates: dataGenerator.generateProductUpdates(1, descriptionLength)[0],
+        updates: dataGenerator.generateProductUpdates(
+          1,
+          descriptionWordLength
+        )[0],
       }));
 
       const updateResult = await elasticSdk.bulkUpdateDocuments(

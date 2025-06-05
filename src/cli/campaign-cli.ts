@@ -92,7 +92,7 @@ const showHelp = () => {
 Usage: npm run campaign:cli -- [options]
 
 Required Options:
-  --variable <type>       Variable to vary (numberOfBatches, documentsPerBatch, descriptionLength, indexType)
+  --variable <type>       Variable to vary (numberOfBatches, documentsPerBatch, descriptionWordLength, indexType)
   --min <number>          Minimum value for the variable
   --max <number>          Maximum value for the variable
   --increment <number>    Increment step for the variable
@@ -117,7 +117,7 @@ Examples:
   npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --increment 300 --repetitions 3 --chart-name "Custom Batch Size Test"
 
   # Vary description length with auto-generated chart name
-  npm run campaign:cli -- --variable descriptionLength --min 1 --max 10 --increment 2 --repetitions 2
+  npm run campaign:cli -- --variable descriptionWordLength --min 1 --max 10 --increment 2 --repetitions 2
 
   # Test different index types with custom chart name
   npm run campaign:cli -- --variable indexType --min 0 --max 0 --increment 0 --repetitions 2 --chart-name "Production Index Analysis"
@@ -133,7 +133,7 @@ const validateArgs = (args: CLIArgs): string[] => {
     ![
       "numberOfBatches",
       "documentsPerBatch",
-      "descriptionLength",
+      "descriptionWordLength",
       "indexType",
       "numberOfUpdateBatches",
       "documentsPerUpdateBatch",
@@ -141,7 +141,7 @@ const validateArgs = (args: CLIArgs): string[] => {
     ].includes(args.variable)
   ) {
     errors.push(
-      "--variable must be one of: numberOfBatches, documentsPerBatch, descriptionLength, indexType, numberOfUpdateBatches, documentsPerUpdateBatch, fuzziness"
+      "--variable must be one of: numberOfBatches, documentsPerBatch, descriptionWordLength, indexType, numberOfUpdateBatches, documentsPerUpdateBatch, fuzziness"
     );
   }
 
@@ -187,7 +187,7 @@ const runCLI = async () => {
       indexType: args.indexType,
       batches: args.batches,
       docsPerBatch: args.docsPerBatch,
-      descLength: args.descLength,
+      descWordLength: args.descLength,
       chartName: finalChartName,
       verbose: args.verbose,
     });
@@ -216,7 +216,7 @@ const runCLI = async () => {
     }
     console.log(`\t- Repetitions: ${args.repetitions}`);
     console.log(
-      `\t- Base config: ${baseConfig.numberOfBatches} batches × ${baseConfig.documentsPerBatch} docs × ${baseConfig.descriptionLength} lines`
+      `\t- Base config: ${baseConfig.numberOfBatches} batches × ${baseConfig.documentsPerBatch} docs × ${baseConfig.descriptionWordLength} lines`
     );
     console.log("");
 

@@ -12,7 +12,7 @@ export type BenchmarkConfig = {
   // Data configuration
   numberOfBatches: number;
   documentsPerBatch: number;
-  descriptionLength: number;
+  descriptionWordLength: number;
 
   // Update configuration
   updateConfig: {

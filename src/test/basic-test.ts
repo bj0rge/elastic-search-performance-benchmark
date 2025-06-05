@@ -27,16 +27,16 @@ const createIndex = async ({ client }: { client: Client }) => {
 const generateAndIndexProducts = async ({
   client,
   dataGenerator,
-  config: { productsToGenerate, productDescriptionLength },
+  config: { productsToGenerate, productDescriptionWordLength },
 }: {
   client: Client;
   dataGenerator: DataGenerator;
-  config: { productsToGenerate: number; productDescriptionLength: number };
+  config: { productsToGenerate: number; productDescriptionWordLength: number };
 }): Promise<Product[]> => {
   console.log("Generating test products...");
   const products = dataGenerator.generateProducts(
     productsToGenerate,
-    productDescriptionLength
+    productDescriptionWordLength
   );
 
   console.log("Indexing products...");
@@ -90,12 +90,15 @@ const bulkUpdateProducts = async ({
   client,
   dataGenerator,
   products,
-  config: { updatesToPerform, updateDescriptionLength },
+  config: {
+    updatesToPerform,
+    updateDescriptionWordLength: updateDescriptionWordLength,
+  },
 }: {
   client: Client;
   dataGenerator: DataGenerator;
   products: Product[];
-  config: { updatesToPerform: number; updateDescriptionLength: number };
+  config: { updatesToPerform: number; updateDescriptionWordLength: number };
 }) => {
   console.log("Testing bulk update operations...");
 
@@ -106,7 +109,7 @@ const bulkUpdateProducts = async ({
 
   const updates = productsToUpdate.map((product) => ({
     id: product.id,
-    updates: dataGenerator.generateProductUpdate(updateDescriptionLength),
+    updates: dataGenerator.generateProductUpdate(updateDescriptionWordLength),
   }));
 
   console.log(`Updating ${updates.length} products...`);
@@ -177,7 +180,7 @@ const basicTest = async () => {
       dataGenerator,
       config: {
         productsToGenerate: PRODUCTS_TO_GENERATE,
-        productDescriptionLength: PRODUCT_DESCRIPTION_LENGTH,
+        productDescriptionWordLength: PRODUCT_DESCRIPTION_LENGTH,
       },
     });
 
@@ -201,7 +204,7 @@ const basicTest = async () => {
       products,
       config: {
         updatesToPerform: UPDATES_TO_PERFORM,
-        updateDescriptionLength: UPDATE_DESCRIPTION_LENGTH,
+        updateDescriptionWordLength: UPDATE_DESCRIPTION_LENGTH,
       },
     });
 

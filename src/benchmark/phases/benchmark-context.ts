@@ -5,6 +5,14 @@ export type BenchmarkContext = {
   client: Client;
   dataGenerator: {
     generateProducts: (count: number, descriptionLength: number) => Product[];
+    generateProductsAsync: (
+      count: number,
+      descriptionLength: number
+    ) => Promise<Product[]>;
+    generateProductsStream: (
+      count: number,
+      descriptionLength: number
+    ) => AsyncGenerator<Product, void, unknown>;
     generateProductUpdates: (
       count: number,
       descriptionLength: number

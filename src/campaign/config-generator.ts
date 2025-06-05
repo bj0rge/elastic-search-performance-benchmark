@@ -33,8 +33,8 @@ const applyVariationToConfig = (
       config.documentsPerBatch = value as number;
       break;
 
-    case "descriptionLength":
-      config.descriptionLength = value as number;
+    case "descriptionWordLength":
+      config.descriptionWordLength = value as number;
       break;
 
     case "indexType":

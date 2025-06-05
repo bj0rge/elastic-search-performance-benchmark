@@ -144,10 +144,10 @@ export class StreamProcessor {
       // Pattern: cli-campaign-numberOfBatches-50
       variable = "numberOfBatches";
       value = config.numberOfBatches;
-    } else if (indexName.includes("-descriptionLength-")) {
-      // Pattern: cli-campaign-descriptionLength-10
-      variable = "descriptionLength";
-      value = config.descriptionLength;
+    } else if (indexName.includes("-descriptionWordLength-")) {
+      // Pattern: cli-campaign-descriptionWordLength-10
+      variable = "descriptionWordLength";
+      value = config.descriptionWordLength;
     } else if (indexName.includes("-numberOfUpdateBatches-")) {
       variable = "numberOfUpdateBatches";
       value = config.updateConfig.numberOfUpdateBatches;

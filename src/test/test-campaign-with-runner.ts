@@ -12,7 +12,7 @@ const createTestCampaignConfig = (): CampaignConfig => {
     indexType: "standard",
     batches: 10,
     docsPerBatch: 100,
-    descLength: 1,
+    descWordLength: 1,
     chartName: "Integration Test - Batch Size Scaling",
     verbose: true,
   });
@@ -64,7 +64,7 @@ const testIndexTypeCampaign = async () => {
       indexType: "standard",
       batches: 5,
       docsPerBatch: 100,
-      descLength: 1,
+      descWordLength: 1,
       chartName: "Integration Test - Index Type Comparison",
       verbose: true,
     });

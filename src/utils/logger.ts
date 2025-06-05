@@ -2,6 +2,7 @@ type LogFn = (message?: any, ...optionalParams: any[]) => void;
 
 export type Logger = {
   log: LogFn;
+  info: LogFn;
   warn: LogFn;
   error: LogFn;
 };
@@ -13,6 +14,7 @@ export function buildLogger(verbose: boolean): Logger {
         console.log(message, ...optionalParams);
       }
     },
+    info: console.info,
     warn: console.warn,
     error: console.error,
   };

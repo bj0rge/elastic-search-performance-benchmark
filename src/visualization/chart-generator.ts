@@ -398,7 +398,7 @@ const getAxisLabel = (variable: string): string => {
   const labels: Record<string, string> = {
     documentsPerBatch: "Documents per Batch",
     numberOfBatches: "Number of Batches",
-    descriptionLength: "Description Length (lines)",
+    descriptionWordLength: "Description Length (words)",
     indexType: "Index Type",
     numberOfUpdateBatches: "Number of Update Batches",
     documentsPerUpdateBatch: "Documents per Update Batch",

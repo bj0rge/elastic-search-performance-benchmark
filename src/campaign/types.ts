@@ -3,7 +3,7 @@ import type { BenchmarkConfig } from "../types";
 export type VariableType =
   | "numberOfBatches"
   | "documentsPerBatch"
-  | "descriptionLength"
+  | "descriptionWordLength"
   | "indexType"
   | "numberOfUpdateBatches"
   | "documentsPerUpdateBatch"

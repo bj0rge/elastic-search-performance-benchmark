@@ -196,8 +196,8 @@ const getConfigValue = (config: any, variable: string): any => {
       return config.numberOfBatches;
     case "documentsPerBatch":
       return config.documentsPerBatch;
-    case "descriptionLength":
-      return config.descriptionLength;
+    case "descriptionWordLength":
+      return config.descriptionWordLength;
     case "indexType":
       return config.indexType;
     case "numberOfUpdateBatches":

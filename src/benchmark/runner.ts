@@ -81,7 +81,7 @@ export const runBenchmark = async (
       config.numberOfBatches * config.documentsPerBatch
     }`
   );
-  logger.log(`\t- Description length: ${config.descriptionLength} lines`);
+  logger.log(`\t- Description length: ${config.descriptionWordLength} lines`);
   logger.log(
     `\t- Phases: ${Object.entries(opts.phases)
       .filter(([_, enabled]) => enabled)
@@ -146,12 +146,12 @@ export const runBenchmark = async (
 
       context.dataGenerator.generateProductUpdates = (
         count: number,
-        descriptionLength: number
+        descriptionWordLength: number
       ) => {
         const availableProducts = context.indexedProducts.slice(0, count);
         return availableProducts.map((product) => ({
           id: product.id,
-          updates: dataGenerator.generateProductUpdate(descriptionLength),
+          updates: dataGenerator.generateProductUpdate(descriptionWordLength),
         }));
       };
 
@@ -242,7 +242,7 @@ const generateContext = ({
   startTime,
 }: {
   config: BenchmarkConfig;
-  dataGenerator: DataGenerator;
+  dataGenerator: DataGenerator; // Le type complet
   client: Client;
   startTime: number;
 }): BenchmarkContext => {
@@ -251,6 +251,10 @@ const generateContext = ({
     dataGenerator: {
       generateProducts: (count: number, descriptionLength: number) =>
         dataGenerator.generateProducts(count, descriptionLength),
+      generateProductsAsync: (count: number, descriptionLength: number) =>
+        dataGenerator.generateProductsAsync(count, descriptionLength),
+      generateProductsStream: (count: number, descriptionLength: number) =>
+        dataGenerator.generateProductsStream(count, descriptionLength),
       generateProductUpdates: (count: number, descriptionLength: number) =>
         dataGenerator
           .generateProductUpdates(count, descriptionLength)

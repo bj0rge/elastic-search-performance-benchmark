@@ -21,7 +21,7 @@ The campaign system allows you to run multiple benchmark configurations automati
 |----------|-------------|---------------|
 | `numberOfBatches` | Number of indexing batches | 10 → 100 |
 | `documentsPerBatch` | Documents per batch | 100 → 10000 |
-| `descriptionLength` | Lines of text per description | 1 → 1000 |
+| `descriptionWordLength` | Words per description | 1 → 1000 |
 | `indexType` | Analyzer type | standard, ngram, stemming |
 | `numberOfUpdateBatches` | Update operation batches | 5 → 50 |
 | `documentsPerUpdateBatch` | Documents per update batch | 50 → 500 |
@@ -36,7 +36,7 @@ npm run campaign:cli -- --variable documentsPerBatch --min 100 --max 1000 --incr
 npm run campaign:cli -- --variable indexType --min 0 --max 0 --increment 0 --repetitions 2 --batches 20
 
 # Vary description length with custom base configuration
-npm run campaign:cli -- --variable descriptionLength --min 1 --max 10 --increment 2 --repetitions 2 --docs-per-batch 500
+npm run campaign:cli -- --variable descriptionWordLength --min 10 --max 100 --increment 2 --repetitions 2 --docs-per-batch 500
 ```
 
 ### Programmatic Usage
@@ -51,7 +51,7 @@ const campaignConfig = {
     indexType: "standard",
     numberOfBatches: 10,
     documentsPerBatch: 100, // Will be varied
-    descriptionLength: 1,
+    descriptionWordLength: 10,
     // ... other config
   },
   variations: {
